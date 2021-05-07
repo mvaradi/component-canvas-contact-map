@@ -1,13 +1,134 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>ContactMapCanvas</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
+<!--<!doctype html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--<meta charset="utf-8">-->
+<!--<title>ContactMapCanvas</title>-->
+<!--<base href="/">-->
+<!--<meta name="viewport" content="width=device-width, initial-scale=1">-->
+<!--<link rel="icon" type="image/x-icon" href="favicon.ico">-->
+<!--</head>-->
+<!--<body>-->
+<!--<app-root></app-root>-->
+<!--</body>-->
+<!--</html>-->
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+  body {
+    position: relative;
+  }
+
+  svg,
+  canvas {
+    position: absolute;
+  }
+
+  .axis text {
+    font: 10px sans-serif;
+  }
+
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  .axis path {
+    display: none;
+  }
+
+</style>
 <body>
-  <app-root></app-root>
-</body>
-</html>
+<app-root></app-root>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+
+  var width = 600;
+  var height = 600;
+
+  d3.json("assets/O75369_distogram.json", function (error, heatmap) {
+    if (error) throw error;
+
+    var dx = heatmap[0].length,
+      dy = heatmap.length;
+
+    // Fix the aspect ratio.
+    // var ka = dy / dx, kb = height / width;
+    // if (ka < kb) height = width * ka;
+    // else width = height / ka;
+
+    var x = d3.scale.linear()
+      .domain([0, dx])
+      .range([0, width]);
+
+    var y = d3.scale.linear()
+      .domain([0, dy])
+      .range([height, 0]);
+
+    var color = d3.scale.linear()
+      .domain([0, 2, 4.75, 7.5, 10.25, 13, 15.75, 21])
+      .range(["#FFFFFF", "#A7CCD9", "#BFDEBB", "#AACBA9", "#7E9F7E", "9FB19E", "#B6A8A1", "#BDB9BD"]);
+
+    var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("top")
+      .ticks(20);
+
+    var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("right");
+
+    d3.select("body").append("canvas")
+      .attr("width", dx)
+      .attr("height", dy)
+      .style("width", width + "px")
+      .style("height", height + "px")
+      .call(drawImage);
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .call(removeZero);
+
+    svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .call(removeZero);
+
+    // Compute the pixel colors; scaled by CSS.
+    function drawImage(canvas) {
+      var context = canvas.node().getContext("2d"),
+        image = context.createImageData(dx, dy);
+
+      for (var y = 0, p = -1; y < dy; ++y) {
+        for (var x = 0; x < dx; ++x) {
+          if (!heatmap[y][x]){
+            heatmap[y][x] = 0;
+          }
+          var c = d3.rgb(color(heatmap[y][x]));
+          image.data[++p] = c.r;
+          image.data[++p] = c.g;
+          image.data[++p] = c.b;
+          image.data[++p] = 255;
+        }
+      }
+
+      context.putImageData(image, 0, 0);
+    }
+
+    function removeZero(axis) {
+      axis.selectAll("g").filter(function (d) {
+        return !d;
+      }).remove();
+    }
+  });
+
+</script>
